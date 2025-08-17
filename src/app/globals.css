@@ -1,0 +1,19 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Jangan set background/body secara global di sini.
+   Kita pakai kelas Tailwind di komponen. */
+
+html,
+body,
+#__next {
+  height: 100%;
+}
+
+/* Opsional util kecil */
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
