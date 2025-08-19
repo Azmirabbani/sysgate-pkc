@@ -10,7 +10,7 @@ export type DashboardCategories = {
 // Kapasitas gedung (boleh dipakai di page)
 export const CAPACITY_MAX = 800;
 
-// Data awal (semua kategori). Total di halaman akan dihitung dari ini.
+// Data awal (semua kategori). Total akan dihitung dari ini.
 export const initialDashboardData: DashboardCategories = {
   karyawanPKC: 63,
   phlKontraktor: 296,
@@ -18,6 +18,6 @@ export const initialDashboardData: DashboardCategories = {
   visitor: 134,
 };
 
-// Helper kalau mau dipakai di tempat lain
+// Helper total orang di dalam
 export const sumTotalInside = (d: DashboardCategories) =>
   d.karyawanPKC + d.phlKontraktor + d.praktikan + d.visitor;
