@@ -46,13 +46,6 @@ export default function StatCard({
           {value.toLocaleString()}
         </div>
         <p className="text-gray-700 dark:text-gray-300 text-sm">{title}</p>
-
-        <div className="mt-3 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-          <div
-            className={`h-full rounded-full bg-gradient-to-r ${bgColor}`}
-            style={{ width: `${Math.min((value / 500) * 100, 100)}%` }}
-          />
-        </div>
       </div>
     </div>
   );

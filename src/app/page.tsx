@@ -12,97 +12,77 @@ import {
   ArrowDownLeft,
 } from "lucide-react";
 
+import {
+  initialDashboardData,
+  CAPACITY_MAX,
+  sumTotalInside,
+} from "../data/dashboardData";
+
+type Data = typeof initialDashboardData;
+const CATEGORIES = [
+  "karyawanPKC",
+  "phlKontraktor",
+  "praktikan",
+  "visitor",
+] as const;
+
 export default function Dashboard() {
-  const capacityMax = 800;
-
-  // ==== THEME ====
-  const [darkMode, setDarkMode] = useState<boolean>(true);
-
   // mounted fix (biar ngga hydration error)
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
-  // initial theme (localStorage > prefers-color-scheme)
-  useEffect(() => {
-    const stored =
-      typeof window !== "undefined" ? localStorage.getItem("theme") : null;
-    if (stored === "dark") setDarkMode(true);
-    else if (stored === "light") setDarkMode(false);
-    else setDarkMode(window.matchMedia("(prefers-color-scheme: dark)").matches);
-  }, []);
-
-  // sinkronkan ke <html class="dark">
-  useEffect(() => {
-    const root = document.documentElement; // <html>
-    root.classList.toggle("dark", darkMode);
-    localStorage.setItem("theme", darkMode ? "dark" : "light");
-  }, [darkMode]);
-
   // ==== DATA & STATE ====
   const [lastUpdate, setLastUpdate] = useState(new Date());
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [data, setData] = useState({
-    totalInside: 521,
-    karyawanPKC: 63,
-    phlKontraktor: 296,
-    praktikan: 0,
-    visitor: 137,
-  });
+  const [data, setData] = useState<Data>(initialDashboardData); // ⬅️ ambil dari file data
   const [lastEntry, setLastEntry] = useState<Date | null>(null);
   const [lastExit, setLastExit] = useState<Date | null>(null);
   const [enteredToday, setEnteredToday] = useState(0);
   const [exitedToday, setExitedToday] = useState(0);
 
-  // simulasi realtime
+  // ==== SIMULASI REALTIME: entry/exit selalu mengubah kategori ====
   useEffect(() => {
     const id = setInterval(() => {
-      setData((p) => {
-        const bump = Math.random() < 0.6 ? 1 : -1;
-        let next = p.totalInside + bump;
-        if (next < 0) next = 0;
-        if (next > capacityMax) next = capacityMax;
+      setData((prev) => {
+        const totalInside = sumTotalInside(prev);
+        const bump = Math.random() < 0.6 ? 1 : -1; // 60% masuk, 40% keluar
+        const next = { ...prev };
 
         if (bump > 0) {
+          // ==== MASUK ====
+          if (totalInside >= CAPACITY_MAX) return prev; // penuh, tidak menambah
+
+          // pilih kategori masuk (acak; bisa kamu ganti dengan aturan lain)
+          const cat = CATEGORIES[Math.floor(Math.random() * CATEGORIES.length)];
+          next[cat] += 1;
+
           setLastEntry(new Date());
           setEnteredToday((n) => n + 1);
         } else {
+          // ==== KELUAR ====
+          if (totalInside <= 0) return prev; // kosong
+
+          // cari kategori yang > 0 dulu baru kurangi salah satunya
+          const nonZero = CATEGORIES.filter((c) => prev[c] > 0);
+          if (nonZero.length === 0) return prev;
+
+          const cat = nonZero[Math.floor(Math.random() * nonZero.length)];
+          next[cat] -= 1;
+
           setLastExit(new Date());
           setExitedToday((n) => n + 1);
         }
+
         setLastUpdate(new Date());
-        return { ...p, totalInside: next };
+        return next;
       });
     }, 4000);
+
     return () => clearInterval(id);
   }, []);
 
-  const refreshData = () => {
-    setIsRefreshing(true);
-    setTimeout(() => {
-      setData((p) => {
-        const bump = Math.random() < 0.6 ? 1 : -1;
-        let next = p.totalInside + bump * (1 + Math.floor(Math.random() * 3));
-        if (next < 0) next = 0;
-        if (next > capacityMax) next = capacityMax;
-
-        if (next > p.totalInside) {
-          setLastEntry(new Date());
-          setEnteredToday((n) => n + 1);
-        } else if (next < p.totalInside) {
-          setLastExit(new Date());
-          setExitedToday((n) => n + 1);
-        }
-        return { ...p, totalInside: next };
-      });
-      setLastUpdate(new Date());
-      setIsRefreshing(false);
-    }, 700);
-  };
-
-  // derived
-  const occupancy = (data.totalInside / capacityMax) * 100;
-  const ringStroke =
-    occupancy >= 100 ? "#ef4444" : occupancy >= 90 ? "#f59e0b" : "#10b981";
+  // ==== DERIVED ====
+  const totalInside = sumTotalInside(data);
+  const occupancy = (totalInside / CAPACITY_MAX) * 100;
   const capacityColor =
     occupancy >= 100
       ? "text-red-500"
@@ -112,13 +92,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
-      <Header
-        lastUpdate={lastUpdate}
-        refreshData={refreshData}
-        isRefreshing={isRefreshing}
-        darkMode={darkMode}
-        setDarkMode={setDarkMode}
-      />
+      <Header lastUpdate={lastUpdate} />
 
       <main className="max-w-7xl mx-auto px-6 py-6">
         {/* Top bar */}
@@ -164,14 +138,14 @@ export default function Dashboard() {
             <div className="flex items-center gap-3 text-sm">
               <span className="text-gray-800 dark:text-gray-300">
                 <span className="font-semibold text-gray-900 dark:text-white">
-                  {data.totalInside}
+                  {totalInside}
                 </span>
-                <span className="text-gray-500">/{capacityMax}</span>
+                <span className="text-gray-500">/{CAPACITY_MAX}</span>
               </span>
               <span className={`${capacityColor} font-semibold`}>
                 {occupancy.toFixed(0)}%{" "}
                 <span className="text-gray-500 font-normal">
-                  of {capacityMax}
+                  of {CAPACITY_MAX}
                 </span>
               </span>
             </div>
@@ -200,7 +174,7 @@ export default function Dashboard() {
 
                 <div>
                   <div className="text-7xl md:text-8xl font-extrabold text-gray-900 dark:text-white mb-2 tracking-tight">
-                    {data.totalInside.toLocaleString()}
+                    {totalInside.toLocaleString()}
                   </div>
                   <p className="text-lg md:text-xl font-medium text-gray-700 dark:text-gray-300 mb-6">
                     Orang di Dalam Gedung
