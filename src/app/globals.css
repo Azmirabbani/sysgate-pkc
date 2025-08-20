@@ -2,13 +2,18 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Jangan set background/body secara global di sini.
-   Kita pakai kelas Tailwind di komponen. */
-
+/* Fullscreen setup */
 html,
 body,
 #__next {
-  height: 100%;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+}
+
+/* Prevent scrolling on the main container */
+html {
+  overflow: hidden;
 }
 
 /* Opsional util kecil */
